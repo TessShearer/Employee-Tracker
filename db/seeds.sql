@@ -37,7 +37,7 @@ VALUES
 (14, 'Nick', 'Nickelson', 6, 10),
 (15, 'Ola', 'Olson', 7, 10),
 (16, 'Pamela', 'Powell', 7, 10),
-(17, 'Quinton', 'Quiggle', 8, NULL),
-(18, 'Rachel', 'Reese', 9, NULL),
-(19, 'Sam', 'Sanders', 10, NULL),
-(20, 'Tyler', 'Thompson', 11, NULL),
+(17, 'Quinton', 'Quiggle', 8),
+(18, 'Rachel', 'Reese', 9),
+(19, 'Sam', 'Sanders', 10),
+(20, 'Tyler', 'Thompson', 11);
