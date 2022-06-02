@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/TessShearer/Employee-Tracker#readme",
   "dependencies": {
+    "inquirer": "^8.2.4",
+    "mysql2": "^2.3.3",
     "node.js": "^0.0.1-security"
   }
 }

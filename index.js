@@ -1,34 +1,53 @@
 const inquirer = require('inquirer');
+const db = require('./db/connection');
+
+initialPrompt()
 
 function initialPrompt() {
-    inquirer.prompt([
+    inquirer.prompt(
         {
             type: `list`,
             name: `action`,
             message: `What would you like to do?`,
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role']
-        }])
+            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'quit']
+        })
         .then(function (answer) {
-            if (answer.title == "View all departments") {
-
+            console.log({answer})
+            if (answer.action === "View all departments") {
+                db.query('SELECT * FROM department',function(error,data,fields){
+                    if (error) throw error;
+                    console.table(data)
+                })
+                initialPrompt();
             }
-            else if (answer.title == "View all roles") {
-
+            else if (answer.action == "View all roles") {
+                db.query('SELECT * FROM role',function(error,data,fields){
+                    if (error) throw error;
+                    console.table(data)
+                })
+                initialPrompt();
             }
-            else if (answer.title == "View all employees") {
-
+            else if (answer.action == "View all employees") {
+                db.query('SELECT * FROM employee',function(error,data,fields){
+                    if (error) throw error;
+                    console.table(data)
+                })
+                initialPrompt();
             }
-            else if (answer.title == "Add a department") {
+            else if (answer.action == "Add a department") {
                 addDepartment();
             }
-            else if (answer.title == "Add a role") {
+            else if (answer.action == "Add a role") {
                 addRole();
             }
-            else if (answer.title == "Add an employee") {
+            else if (answer.action == "Add an employee") {
                 addEmployee();
             }
-            else if (answer.title == "Update an employee role") {
+            else if (answer.action == "Update an employee role") {
                 updateEmployee();
+            }
+            else if (answer.action == "quit") {
+                return console.log('exiting program')
             }
         }
         )
@@ -89,7 +108,7 @@ function addEmployee() {
         {
             type: `input`,
             name: `manager`,
-            message: `Who is the employee's manager?`
+            message: `Who is the employee's manager (first and last name)?`
         }
     ])
         .then(function (response) {
