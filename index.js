@@ -1,8 +1,15 @@
+const { prompt } = require('inquirer');
 const inquirer = require('inquirer');
+const { mainModule } = require('process');
 const db = require('./db/connection');
 
-initialPrompt()
+const departmentArray = ['Grounds', 'Janitorial', 'IT', 'Management'];
+const roleArray = ['leafblower', 'gardener', 'Snowplow', 'Trash Collector', 'Janitor', 'On and Off Again Guy', 'Systems Administrator', 'Grounds Manager', 'Janitorial Manager', 'IT Manager', 'Company Head'];
+const managerArray = ['Abby', 'Ben', 'Carol', 'David'];
 
+initialPrompt();
+
+// Asks what the user would like to do, then calls the matching function
 function initialPrompt() {
     inquirer.prompt(
         {
@@ -12,27 +19,14 @@ function initialPrompt() {
             choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'quit']
         })
         .then(function (answer) {
-            console.log({answer})
             if (answer.action === "View all departments") {
-                db.query('SELECT * FROM department',function(error,data,fields){
-                    if (error) throw error;
-                    console.table(data)
-                })
-                initialPrompt();
+                viewDepartments();
             }
             else if (answer.action == "View all roles") {
-                db.query('SELECT * FROM role',function(error,data,fields){
-                    if (error) throw error;
-                    console.table(data)
-                })
-                initialPrompt();
+                viewRoles();
             }
             else if (answer.action == "View all employees") {
-                db.query('SELECT * FROM employee',function(error,data,fields){
-                    if (error) throw error;
-                    console.table(data)
-                })
-                initialPrompt();
+                viewEmployees();
             }
             else if (answer.action == "Add a department") {
                 addDepartment();
@@ -47,12 +41,39 @@ function initialPrompt() {
                 updateEmployee();
             }
             else if (answer.action == "quit") {
-                return console.log('exiting program')
+                quit();
             }
-        }
-        )
+        })
 };
 
+
+// Functions to view tables
+function viewDepartments() {
+    db.query('SELECT * FROM department', function (error, data) {
+        if (error) throw error;
+        console.table(data)
+    })
+    initialPrompt();
+};
+
+function viewRoles() {
+    db.query('SELECT role.*, department.dep_name AS dep_name FROM role LEFT JOIN department ON role.department_id = department.id', function (error, data) {
+        if (error) throw error;
+        console.table(data)
+    })
+    initialPrompt();
+};
+
+function viewEmployees() {
+    db.query('SELECT employee.*, role.title AS role_title FROM employee LEFT JOIN role ON employee.role_id = role.id', function (error, data) {
+        if (error) throw error;
+        console.table(data)
+    })
+    initialPrompt();
+};
+
+
+// Functions to edit tables
 function addDepartment() {
     inquirer.prompt([
         {
@@ -61,7 +82,12 @@ function addDepartment() {
             message: `What is the name of the new department?`
         }])
         .then(function (response) {
-
+            newDepartmentName = response.department;
+            departmentArray.push(newDepartmentName);
+            db.query('INSERT INTO tracker.department (dep_name) VALUES ("' + newDepartmentName + '")', function (error, data) {
+                if (error) throw error;
+                viewDepartments();
+            })
         })
 };
 
@@ -69,7 +95,7 @@ function addRole() {
     inquirer.prompt([
         {
             type: `input`,
-            name: `role`,
+            name: `title`,
             message: `What is the new role called?`
         },
         {
@@ -78,14 +104,25 @@ function addRole() {
             message: `What is the salary for the new role?`
         },
         {
-            type: `input`,
+            type: `list`,
             name: `department`,
-            message: `What department is the new role in?`
+            message: `What department is the new role in?`,
+            choices: departmentArray
         }
     ])
         .then(function (response) {
-
-        })
+            newRoleTitle = response.title;
+            roleArray.push(newRoleTitle);
+            for (i = 0; i <= departmentArray.length; i++) {
+                if (response.department == departmentArray[i]) {
+                    dep_id = (i + 1);
+                    db.query('INSERT INTO tracker.role (title, salary, department_id) VALUES ("' + response.title + '", ' + response.salary + ', ' + dep_id + ')', function (error, data) {
+                        if (error) throw error;
+                        viewRoles();
+                    });
+                }
+            };
+        });
 };
 
 function addEmployee() {
@@ -101,21 +138,69 @@ function addEmployee() {
             message: `What is the employee's last name?`
         },
         {
-            type: `input`,
+            type: `list`,
             name: `role`,
-            message: `What is the employee's role?`
+            message: `What is the employee's role?`,
+            choices: roleArray
         },
         {
-            type: `input`,
+            type: `list`,
             name: `manager`,
-            message: `Who is the employee's manager (first and last name)?`
+            message: `Who is the employee's manager?`,
+            choices: managerArray
         }
     ])
         .then(function (response) {
-
-        })
+            for (i = 0; i <= roleArray.length; i++) {
+                if (response.role == roleArray[i]) {
+                    role_id = (i + 1);
+                    if (response.manager == managerArray[i]) {
+                        manager_id = (i + 1);
+                        db.query('INSERT INTO tracker.employee (first_name, last_name, role_id, manager_id) VALUES ("' + response.first + '", ' + response.last + ', ' + role_id + ', ' + manager_id + ')', function (error, data) {
+                            if (error) throw error;
+                            viewEmployees();
+                        });
+                    }
+                }
+            };
+        });
 };
 
 function updateEmployee() {
+    inquirer.prompt([
+        {
+            type: `input`,
+            name: `first`,
+            message: `What is the employee's first name whose role you want to update?`
+        },
+        {
+            type: `input`,
+            name: `last`,
+            message: `What is the employee's last name whose role you want to update?`
+        },
+        {
+            type: `list`,
+            name: `role`,
+            message: `What new role do you want the employee to have?`,
+            choices: roleArray
+        }
+    ])
+        .then(function (response) {
+            for (i = 0; i <= roleArray.length; i++) {
+                if (response.role == roleArray[i]) {
+                    role_id = (i + 1);
+                    db.query('UPDATE employee SET role_id = ' + role_id + ' WHERE first_name = "' + response.first + '" AND "' + response.last + '"', function (error, data) {
+                        if (error) throw error;
+                        viewEmployees();
+                    });
+                }
+            }
+        });
+};
 
+// function to quit and return to main command line
+function quit() {
+    console.log('exiting program')
+    prompt.ui.close()
+    // This is just an error but DOES close the program
 };
