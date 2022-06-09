@@ -3,9 +3,10 @@ const inquirer = require('inquirer');
 const { mainModule } = require('process');
 const db = require('./db/connection');
 
+// Arrays!
 const departmentArray = ['Grounds', 'Janitorial', 'IT', 'Management'];
 const roleArray = ['leafblower', 'gardener', 'Snowplow', 'Trash Collector', 'Janitor', 'On and Off Again Guy', 'Systems Administrator', 'Grounds Manager', 'Janitorial Manager', 'IT Manager', 'Company Head'];
-const managerArray = ['Abby', 'Ben', 'Carol', 'David'];
+const managerArray = ['Abby Anderson (Company Head)', 'Ben Baker (Grounds Manager)', 'Carol Coleman (Janitorial Manager)', 'David Dentin (IT Manager)'];
 
 initialPrompt();
 
@@ -16,7 +17,7 @@ function initialPrompt() {
             type: `list`,
             name: `action`,
             message: `What would you like to do?`,
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'quit']
+            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role']
         })
         .then(function (answer) {
             if (answer.action === "View all departments") {
@@ -40,9 +41,6 @@ function initialPrompt() {
             else if (answer.action == "Update an employee role") {
                 updateEmployee();
             }
-            else if (answer.action == "quit") {
-                quit();
-            }
         })
 };
 
@@ -57,7 +55,7 @@ function viewDepartments() {
 };
 
 function viewRoles() {
-    db.query('SELECT role.*, department.dep_name AS dep_name FROM role LEFT JOIN department ON role.department_id = department.id', function (error, data) {
+    db.query('SELECT role.id, role.title, role.salary, department.dep_name AS dep_name FROM role LEFT JOIN department ON role.department_id = department.id', function (error, data) {
         if (error) throw error;
         console.table(data)
     })
@@ -65,7 +63,7 @@ function viewRoles() {
 };
 
 function viewEmployees() {
-    db.query('SELECT employee.*, role.title AS role_title FROM employee LEFT JOIN role ON employee.role_id = role.id', function (error, data) {
+    db.query('SELECT employee.id, employee.first_name, employee.last_name, employee.manager_id, role.title AS role_title FROM employee LEFT JOIN role ON employee.role_id = role.id', function (error, data) {
         if (error) throw error;
         console.table(data)
     })
@@ -111,6 +109,7 @@ function addRole() {
         }
     ])
         .then(function (response) {
+            console.log(response)
             newRoleTitle = response.title;
             roleArray.push(newRoleTitle);
             for (i = 0; i <= departmentArray.length; i++) {
@@ -151,19 +150,26 @@ function addEmployee() {
         }
     ])
         .then(function (response) {
-            for (i = 0; i <= roleArray.length; i++) {
-                if (response.role == roleArray[i]) {
-                    role_id = (i + 1);
-                    if (response.manager == managerArray[i]) {
-                        manager_id = (i + 1);
-                        db.query('INSERT INTO tracker.employee (first_name, last_name, role_id, manager_id) VALUES ("' + response.first + '", ' + response.last + ', ' + role_id + ', ' + manager_id + ')', function (error, data) {
+            console.log(response)
+
+            let role_id = roleArray.indexOf(response.role) + 1;
+            response.role = role_id;
+            if(role_id < 0){
+                return console.log('please select a valid role')
+            }
+            let manager_id = managerArray.indexOf(response.manager) + 1;
+            response.manager = manager_id;
+            if(manager_id < 0){
+                return console.log('please select a valid manager')
+            }
+                        db.query('INSERT INTO tracker.employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [response.first,response.last,response.role,response.manager], function (error, data) {
                             if (error) throw error;
                             viewEmployees();
                         });
                     }
-                }
-            };
-        });
+                
+            
+        );
 };
 
 function updateEmployee() {
@@ -171,7 +177,7 @@ function updateEmployee() {
         {
             type: `input`,
             name: `first`,
-            message: `What is the employee's first name whose role you want to update?`
+            message: `What is the employee's first name whose role you want to update (existing employee)?`
         },
         {
             type: `input`,
@@ -189,18 +195,11 @@ function updateEmployee() {
             for (i = 0; i <= roleArray.length; i++) {
                 if (response.role == roleArray[i]) {
                     role_id = (i + 1);
-                    db.query('UPDATE employee SET role_id = ' + role_id + ' WHERE first_name = "' + response.first + '" AND "' + response.last + '"', function (error, data) {
+                    db.query('UPDATE employee SET role_id = ' + role_id + ' WHERE first_name = "' + response.first + '" AND last_name = "' + response.last + '"', function (error, data) {
                         if (error) throw error;
                         viewEmployees();
                     });
                 }
             }
         });
-};
-
-// function to quit and return to main command line
-function quit() {
-    console.log('exiting program')
-    prompt.ui.close()
-    // This is just an error but DOES close the program
 };
